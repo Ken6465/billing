@@ -33,21 +33,67 @@
         <div class="loader-wrapper">
             <div class="loader"></div>
         </div>
-        
+
     <section class="background-radial-gradient overflow-hidden">
-        <!-- Toast Container -->
-        <div class="toast-container">
-            <div id="errorToast" class="toast align-items-center text-white bg-danger border-0" role="alert"
-                aria-live="assertive" aria-atomic="true">
-                <div class="d-flex">
-                    <div class="toast-body">
-                        Invalid input. Please check your readings and rates.
-                    </div>
-                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"
-                        aria-label="Close"></button>
-                </div>
+
+
+<!-- Updated Toast Container - Place this inside the existing toast-container div -->
+<div class="toast-container">
+    <div id="errorToast" class="toast align-items-center text-white bg-danger border-0" role="alert"
+        aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body">
+                Invalid input. Please check your readings and rates.
             </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"
+                aria-label="Close"></button>
         </div>
+    </div>
+
+    <div id="roomNameToast" class="toast align-items-center text-white bg-warning border-0" role="alert"
+        aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body">
+                Please enter a room name.
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"
+                aria-label="Close"></button>
+        </div>
+    </div>
+
+    <div id="presentReadingToast" class="toast align-items-center text-white bg-warning border-0" role="alert"
+        aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body">
+                Please enter the present reading.
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"
+                aria-label="Close"></button>
+        </div>
+    </div>
+
+    <div id="previousReadingToast" class="toast align-items-center text-white bg-warning border-0" role="alert"
+        aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body">
+                Please enter the previous reading.
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"
+                aria-label="Close"></button>
+        </div>
+    </div>
+
+    <div id="powerRatesToast" class="toast align-items-center text-white bg-warning border-0" role="alert"
+        aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body">
+                Please enter the power rates.
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"
+                aria-label="Close"></button>
+        </div>
+    </div>
+</div>
 
         <div class="container px-4 py-5 px-md-5 text-center text-lg-start my-5">
             <div class="row gx-lg-5 align-items-center mb-5">
@@ -189,8 +235,10 @@
             const powerRates = parseFloat(document.getElementById('powerRates').value);
 
             if (presentReading >= previousReading && powerRates > 0) {
-                const kWhUsed = presentReading - previousReading;
-                const totalBill = kWhUsed * powerRates;
+                // Fix precision issues by rounding to 2 decimal places
+                const kWhUsed = (presentReading - previousReading).toFixed(1);
+                const totalBill = (kWhUsed * powerRates).toFixed(2); // Fix precision for total bill
+
 
                 document.getElementById('modalContent').innerHTML = `
                     <div class="table-responsive">
