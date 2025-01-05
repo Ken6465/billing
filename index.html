@@ -25,6 +25,9 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.21.2/babel.min.js"></script>
     <link rel="stylesheet" href="styles.css">
 </head>
 
@@ -140,6 +143,7 @@
                 </div>
             </div>
         </div>
+
     </section>
 
     <!-- Updated Modal with Save button -->
@@ -153,108 +157,115 @@
                 <div class="modal-body">
                     <div id="modalContent"></div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-primary" onclick="saveAsPNG()">Save as PNG</button>
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                </div>
+<div class="modal-footer">
+    <button type="button" class="btn btn-primary" onclick="saveAsPNG()">Save as PNG</button>
+    <button type="button" class="btn btn-info" onclick="window.location.href='history.html'">View History</button>
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+</div>
             </div>
         </div>
     </div>
 
+
     <script>
- // Loading screen handler
-    window.addEventListener('load', function () {
-        const loader = document.querySelector('.loader-wrapper');
+// Loading screen handler
+window.addEventListener('load', function () {
+    const loader = document.querySelector('.loader-wrapper');
+    setTimeout(() => {
+        loader.classList.add('fade-out');
         setTimeout(() => {
-            loader.classList.add('fade-out');
-            setTimeout(() => {
-                loader.style.display = 'none';
-            }, 500);
-        }, 1000); // Show loader for 1 second
+            loader.style.display = 'none';
+        }, 500);
+    }, 1000); // Show loader for 1 second
+});
+
+function saveAsPNG() {
+    const modalContent = document.querySelector('.modal-content');
+    const computedStyle = window.getComputedStyle(modalContent);
+
+    modalContent.style.setProperty('animation', 'none', 'important');
+    modalContent.style.setProperty('transform', 'none', 'important');
+    modalContent.style.setProperty('transition', 'none', 'important');
+
+    modalContent.offsetHeight;
+
+    html2canvas(modalContent, {
+        scale: 2,
+        backgroundColor: '#ffffff',
+        logging: false,
+        useCORS: true,
+        allowTaint: true,
+        removeContainer: true,
+        width: modalContent.offsetWidth,
+        height: modalContent.offsetHeight,
+        onclone: function (clonedDoc) {
+            const clonedModal = clonedDoc.querySelector('.modal-content');
+            clonedModal.style.setProperty('animation', 'none', 'important');
+            clonedModal.style.setProperty('transform', 'none', 'important');
+            clonedModal.style.setProperty('transition', 'none', 'important');
+        }
+    }).then(canvas => {
+        try {
+            const link = document.createElement('a');
+            const filename = `billing-${document.getElementById('roomName').value}-${new Date().toISOString().slice(0, 10)}.png`;
+            link.download = filename;
+            link.href = canvas.toDataURL('image/png');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            modalContent.style.removeProperty('animation');
+            modalContent.style.removeProperty('transform');
+            modalContent.style.removeProperty('transition');
+        } catch (error) {
+            console.error('Error saving image:', error);
+            alert('Error saving image. Please try again.');
+        }
+    }).catch(error => {
+        console.error('Error generating image:', error);
+        alert('Error generating image. Please try again.');
     });
+}
 
-    function saveAsPNG() {
-        const modalContent = document.querySelector('.modal-content');
-        const computedStyle = window.getComputedStyle(modalContent);
+function saveBillingData(billingData) {
+    let billingHistory = JSON.parse(localStorage.getItem('billingHistory')) || [];
+    billingData.timestamp = new Date().toISOString();
+    billingHistory.push(billingData);
+    localStorage.setItem('billingHistory', JSON.stringify(billingHistory));
+}
 
-        modalContent.style.setProperty('animation', 'none', 'important');
-        modalContent.style.setProperty('transform', 'none', 'important');
-        modalContent.style.setProperty('transition', 'none', 'important');
+function getBillingHistory() {
+    return JSON.parse(localStorage.getItem('billingHistory')) || [];
+}
 
-        modalContent.offsetHeight;
+function clearBillingHistory() {
+    localStorage.removeItem('billingHistory');
+    alert('Billing history cleared successfully.');
+}
 
-        html2canvas(modalContent, {
-            scale: 2,
-            backgroundColor: '#ffffff',
-            logging: false,
-            useCORS: true,
-            allowTaint: true,
-            removeContainer: true,
-            width: modalContent.offsetWidth,
-            height: modalContent.offsetHeight,
-            onclone: function (clonedDoc) {
-                const clonedModal = clonedDoc.querySelector('.modal-content');
-                clonedModal.style.setProperty('animation', 'none', 'important');
-                clonedModal.style.setProperty('transform', 'none', 'important');
-                clonedModal.style.setProperty('transition', 'none', 'important');
-            }
-        }).then(canvas => {
-            try {
-                const link = document.createElement('a');
-                const filename = `billing-${document.getElementById('roomName').value}-${new Date().toISOString().slice(0, 10)}.png`;
-                link.download = filename;
-                link.href = canvas.toDataURL('image/png');
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
+document.getElementById('generateBtn').addEventListener('click', function () {
+    const roomName = document.getElementById('roomName').value;
+    const presentReading = parseFloat(document.getElementById('presentReading').value);
+    const previousReading = parseFloat(document.getElementById('previousReading').value);
+    const powerRates = parseFloat(document.getElementById('powerRates').value);
 
-                modalContent.style.removeProperty('animation');
-                modalContent.style.removeProperty('transform');
-                modalContent.style.removeProperty('transition');
-            } catch (error) {
-                console.error('Error saving image:', error);
-                alert('Error saving image. Please try again.');
-            }
-        }).catch(error => {
-            console.error('Error generating image:', error);
-            alert('Error generating image. Please try again.');
-        });
-    }
+    if (presentReading >= previousReading && powerRates > 0) {
+        const kWhUsed = (presentReading - previousReading).toFixed(1);
+        const totalBill = (kWhUsed * powerRates).toFixed(2);
 
-    function saveBillingData(billingData) {
-        let billingHistory = JSON.parse(localStorage.getItem('billingHistory')) || [];
-        billingData.timestamp = new Date().toISOString();
-        billingHistory.push(billingData);
-        localStorage.setItem('billingHistory', JSON.stringify(billingHistory));
-    }
+        const billingData = {
+            room: roomName,
+            presentReading: presentReading,
+            previousReading: previousReading,
+            kWhUsed: kWhUsed,
+            powerRates: powerRates,
+            totalBill: totalBill,
+            billingMonth: new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+        };
 
-    function getBillingHistory() {
-        return JSON.parse(localStorage.getItem('billingHistory')) || [];
-    }
+        saveBillingData(billingData);
 
-    document.getElementById('generateBtn').addEventListener('click', function () {
-        const roomName = document.getElementById('roomName').value;
-        const presentReading = parseFloat(document.getElementById('presentReading').value);
-        const previousReading = parseFloat(document.getElementById('previousReading').value);
-        const powerRates = parseFloat(document.getElementById('powerRates').value);
-
-        if (presentReading >= previousReading && powerRates > 0) {
-            const kWhUsed = (presentReading - previousReading).toFixed(1);
-            const totalBill = (kWhUsed * powerRates).toFixed(2);
-
-            const billingData = {
-                room: roomName,
-                presentReading: presentReading,
-                previousReading: previousReading,
-                kWhUsed: kWhUsed,
-                powerRates: powerRates,
-                totalBill: totalBill,
-                billingMonth: new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
-            };
-
-            saveBillingData(billingData);
-
-            document.getElementById('modalContent').innerHTML = `
+        document.getElementById('modalContent').innerHTML = `
             <div class="table-responsive">
                 <table class="table table-bordered">
                     <tr>
@@ -288,29 +299,29 @@
                 </table>
             </div>
         `;
-            new bootstrap.Modal(document.getElementById('billingModal')).show();
-        } else {
-            const toastElement = document.getElementById('errorToast');
-            const toast = new bootstrap.Toast(toastElement, {
-                animation: true,
-                autohide: true,
-                delay: 3000
-            });
-            toast.show();
-        }
-    });
-
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/service-worker.js')
-                .then(registration => {
-                    console.log('ServiceWorker registration successful');
-                })
-                .catch(err => {
-                    console.log('ServiceWorker registration failed: ', err);
-                });
+        new bootstrap.Modal(document.getElementById('billingModal')).show();
+    } else {
+        const toastElement = document.getElementById('errorToast');
+        const toast = new bootstrap.Toast(toastElement, {
+            animation: true,
+            autohide: true,
+            delay: 3000
         });
+        toast.show();
     }
+});
+
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/service-worker.js')
+            .then(registration => {
+                console.log('ServiceWorker registration successful');
+            })
+            .catch(err => {
+                console.log('ServiceWorker registration failed: ', err);
+            });
+    });
+}
 
 </script>
 </body>
