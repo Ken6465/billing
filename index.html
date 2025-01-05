@@ -29,6 +29,11 @@
 </head>
 
 <body>
+        <!-- Loading Screen -->
+        <div class="loader-wrapper">
+            <div class="loader"></div>
+        </div>
+        
     <section class="background-radial-gradient overflow-hidden">
         <!-- Toast Container -->
         <div class="toast-container">
@@ -51,7 +56,6 @@
     Electric Billing <br />
     <span style="color: hsl(218, 81%, 75%)">Simplified Calculations</span>
 </h1>
-
                 </div>
 
                 <div class="col-lg-6 mb-5 mb-lg-0 position-relative">
@@ -112,6 +116,17 @@
     </div>
 
     <script>
+                // Loading screen handler
+                    window.addEventListener('load', function () {
+                        const loader = document.querySelector('.loader-wrapper');
+                        setTimeout(() => {
+                            loader.classList.add('fade-out');
+                            setTimeout(() => {
+                                loader.style.display = 'none';
+                            }, 500);
+                        }, 1000); // Show loader for 1 second
+                    });
+
  function saveAsPNG() {
         // Get the modal content
         const modalContent = document.querySelector('.modal-content');
