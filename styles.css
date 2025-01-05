@@ -270,7 +270,8 @@
 .modal.fade .modal-dialog {
     transform: scale(0.7);
     opacity: 0;
-    transition: all 0.3s ease-in-out;
+    transition: all 0.4s ease-in-out;
+    /* Slightly slower initial transition */
 }
 
 .modal.show .modal-dialog {
@@ -279,7 +280,8 @@
 }
 
 .modal-content {
-    animation: modalBounce 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    animation: modalBounce 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    /* Slightly slower bounce */
 }
 
 @keyframes modalBounce {
@@ -287,25 +289,36 @@
         transform: scale(0.3);
         opacity: 0;
     }
-    50% {
+
+    45% {
+        /* Adjusted for smoother bounce */
         transform: scale(1.05);
         opacity: 0.8;
     }
+
+    70% {
+        /* Added middle step for smoother bounce */
+        transform: scale(0.98);
+        opacity: 0.9;
+    }
+
     100% {
         transform: scale(1);
         opacity: 1;
     }
 }
 
-/* Optional: Add animation to modal backdrop */
+/* Modal backdrop animation */
 .modal-backdrop.show {
-    animation: fadeIn 0.3s ease-in-out;
+    animation: fadeIn 0.4s ease-in-out;
+    /* Matched with modal timing */
 }
 
 @keyframes fadeIn {
     from {
         opacity: 0;
     }
+
     to {
         opacity: 0.5;
     }

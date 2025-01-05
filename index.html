@@ -47,10 +47,11 @@
         <div class="container px-4 py-5 px-md-5 text-center text-lg-start my-5">
             <div class="row gx-lg-5 align-items-center mb-5">
                 <div class="col-lg-6 mb-0 mb-lg-0" style="z-index: 10">
-                    <h1 class="my-5 display-5 fw-bold ls-tight" style="color: hsl(218, 81%, 95%)">
-                        Electric Billing <br />
-                        <span style="color: hsl(218, 81%, 75%)">Simplified Calculations</span>
-                    </h1>
+<h1 class="display-5 fw-bold ls-tight" style="color: hsl(218, 81%, 95%); margin-top: 0;">
+    Electric Billing <br />
+    <span style="color: hsl(218, 81%, 75%)">Simplified Calculations</span>
+</h1>
+
                 </div>
 
                 <div class="col-lg-6 mb-5 mb-lg-0 position-relative">
@@ -111,24 +112,60 @@
     </div>
 
     <script>
-        // Function to save modal content as PNG
-        function saveAsPNG() {
-            const modalContent = document.querySelector('.modal-content');
+ function saveAsPNG() {
+        // Get the modal content
+        const modalContent = document.querySelector('.modal-content');
 
-            // Configure html2canvas
-            html2canvas(modalContent, {
-                scale: 2, // Higher quality
-                backgroundColor: '#ffffff',
-                logging: false,
-                useCORS: true
-            }).then(canvas => {
+        // Store current styles
+        const computedStyle = window.getComputedStyle(modalContent);
+
+        // Apply temporary styles for capture without animation
+        modalContent.style.setProperty('animation', 'none', 'important');
+        modalContent.style.setProperty('transform', 'none', 'important');
+        modalContent.style.setProperty('transition', 'none', 'important');
+
+        // Force browser to acknowledge style changes
+        modalContent.offsetHeight;
+
+        html2canvas(modalContent, {
+            scale: 2,
+            backgroundColor: '#ffffff',
+            logging: false,
+            useCORS: true,
+            allowTaint: true,
+            removeContainer: true,
+            width: modalContent.offsetWidth,
+            height: modalContent.offsetHeight,
+            onclone: function (clonedDoc) {
+                const clonedModal = clonedDoc.querySelector('.modal-content');
+                clonedModal.style.setProperty('animation', 'none', 'important');
+                clonedModal.style.setProperty('transform', 'none', 'important');
+                clonedModal.style.setProperty('transition', 'none', 'important');
+            }
+        }).then(canvas => {
+            try {
                 // Create download link
                 const link = document.createElement('a');
-                link.download = `billing-${document.getElementById('roomName').value}-${new Date().toISOString().slice(0, 10)}.png`;
+                const filename = `billing-${document.getElementById('roomName').value}-${new Date().toISOString().slice(0, 10)}.png`;
+                link.download = filename;
                 link.href = canvas.toDataURL('image/png');
+                document.body.appendChild(link);
                 link.click();
-            });
-        }
+                document.body.removeChild(link);
+
+                // Clean up by removing the temporary styles instead of restoring
+                modalContent.style.removeProperty('animation');
+                modalContent.style.removeProperty('transform');
+                modalContent.style.removeProperty('transition');
+            } catch (error) {
+                console.error('Error saving image:', error);
+                alert('Error saving image. Please try again.');
+            }
+        }).catch(error => {
+            console.error('Error generating image:', error);
+            alert('Error generating image. Please try again.');
+        });
+    }
 
         document.getElementById('generateBtn').addEventListener('click', function () {
             const roomName = document.getElementById('roomName').value;
