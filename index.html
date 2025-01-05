@@ -210,7 +210,7 @@
                                 </tr>
                                 <tr class="table-primary">
                                     <th>Total Bill:</th>
-                                    <td>₱${totalBill.toFixed(2)}</td>
+                                    <td>₱${totalBill.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                 </tr>
                             </table>
                         </div>
