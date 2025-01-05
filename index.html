@@ -162,30 +162,25 @@
     </div>
 
     <script>
-                // Loading screen handler
-                    window.addEventListener('load', function () {
-                        const loader = document.querySelector('.loader-wrapper');
-                        setTimeout(() => {
-                            loader.classList.add('fade-out');
-                            setTimeout(() => {
-                                loader.style.display = 'none';
-                            }, 500);
-                        }, 1000); // Show loader for 1 second
-                    });
+ // Loading screen handler
+    window.addEventListener('load', function () {
+        const loader = document.querySelector('.loader-wrapper');
+        setTimeout(() => {
+            loader.classList.add('fade-out');
+            setTimeout(() => {
+                loader.style.display = 'none';
+            }, 500);
+        }, 1000); // Show loader for 1 second
+    });
 
- function saveAsPNG() {
-        // Get the modal content
+    function saveAsPNG() {
         const modalContent = document.querySelector('.modal-content');
-
-        // Store current styles
         const computedStyle = window.getComputedStyle(modalContent);
 
-        // Apply temporary styles for capture without animation
         modalContent.style.setProperty('animation', 'none', 'important');
         modalContent.style.setProperty('transform', 'none', 'important');
         modalContent.style.setProperty('transition', 'none', 'important');
 
-        // Force browser to acknowledge style changes
         modalContent.offsetHeight;
 
         html2canvas(modalContent, {
@@ -205,7 +200,6 @@
             }
         }).then(canvas => {
             try {
-                // Create download link
                 const link = document.createElement('a');
                 const filename = `billing-${document.getElementById('roomName').value}-${new Date().toISOString().slice(0, 10)}.png`;
                 link.download = filename;
@@ -214,7 +208,6 @@
                 link.click();
                 document.body.removeChild(link);
 
-                // Clean up by removing the temporary styles instead of restoring
                 modalContent.style.removeProperty('animation');
                 modalContent.style.removeProperty('transform');
                 modalContent.style.removeProperty('transition');
@@ -228,64 +221,97 @@
         });
     }
 
-        document.getElementById('generateBtn').addEventListener('click', function () {
-            const roomName = document.getElementById('roomName').value;
-            const presentReading = parseFloat(document.getElementById('presentReading').value);
-            const previousReading = parseFloat(document.getElementById('previousReading').value);
-            const powerRates = parseFloat(document.getElementById('powerRates').value);
+    function saveBillingData(billingData) {
+        let billingHistory = JSON.parse(localStorage.getItem('billingHistory')) || [];
+        billingData.timestamp = new Date().toISOString();
+        billingHistory.push(billingData);
+        localStorage.setItem('billingHistory', JSON.stringify(billingHistory));
+    }
 
-            if (presentReading >= previousReading && powerRates > 0) {
-                // Fix precision issues by rounding to 2 decimal places
-                const kWhUsed = (presentReading - previousReading).toFixed(1);
-                const totalBill = (kWhUsed * powerRates).toFixed(2); // Fix precision for total bill
+    function getBillingHistory() {
+        return JSON.parse(localStorage.getItem('billingHistory')) || [];
+    }
 
+    document.getElementById('generateBtn').addEventListener('click', function () {
+        const roomName = document.getElementById('roomName').value;
+        const presentReading = parseFloat(document.getElementById('presentReading').value);
+        const previousReading = parseFloat(document.getElementById('previousReading').value);
+        const powerRates = parseFloat(document.getElementById('powerRates').value);
 
-                document.getElementById('modalContent').innerHTML = `
-                    <div class="table-responsive">
-                    <table class="table table-bordered">
+        if (presentReading >= previousReading && powerRates > 0) {
+            const kWhUsed = (presentReading - previousReading).toFixed(1);
+            const totalBill = (kWhUsed * powerRates).toFixed(2);
+
+            const billingData = {
+                room: roomName,
+                presentReading: presentReading,
+                previousReading: previousReading,
+                kWhUsed: kWhUsed,
+                powerRates: powerRates,
+                totalBill: totalBill,
+                billingMonth: new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+            };
+
+            saveBillingData(billingData);
+
+            document.getElementById('modalContent').innerHTML = `
+            <div class="table-responsive">
+                <table class="table table-bordered">
                     <tr>
-                         <th>Billing Month:</th>
-                         <td>${new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</td>
+                        <th>Billing Month:</th>
+                        <td>${billingData.billingMonth}</td>
                     </tr>
-                                <tr>
-                                   <th>Room:</th>
-                                   <td>${roomName}</td>
-                               </tr>
-                                <tr>
-                                    <th>Present Reading:</th>
-                                    <td>${presentReading} kWh</td>
-                                </tr>
-                                <tr>
-                                    <th>Previous Reading:</th>
-                                    <td>${previousReading} kWh</td>
-                                </tr>
-                                 <tr>
-                                    <th>kWh Used:</th>
-                                    <td>${kWhUsed} kWh</td>
-                                </tr>
-                                <tr>
-                                    <th>Power Rates:</th>
-                                    <td>₱${powerRates}/kWh</td>
-                                </tr>
-                                <tr class="table-primary">
-                                    <th>Total Bill:</th>
-                                    <td>₱${totalBill.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                </tr>
-                            </table>
-                        </div>
-                    `;
-                new bootstrap.Modal(document.getElementById('billingModal')).show();
-            } else {
-                // Show toast instead of alert
-                const toastElement = document.getElementById('errorToast');
-                const toast = new bootstrap.Toast(toastElement, {
-                    animation: true,
-                    autohide: true,
-                    delay: 3000
+                    <tr>
+                        <th>Room:</th>
+                        <td>${billingData.room}</td>
+                    </tr>
+                    <tr>
+                        <th>Present Reading:</th>
+                        <td>${billingData.presentReading} kWh</td>
+                    </tr>
+                    <tr>
+                        <th>Previous Reading:</th>
+                        <td>${billingData.previousReading} kWh</td>
+                    </tr>
+                    <tr>
+                        <th>kWh Used:</th>
+                        <td>${billingData.kWhUsed} kWh</td>
+                    </tr>
+                    <tr>
+                        <th>Power Rates:</th>
+                        <td>₱${billingData.powerRates}/kWh</td>
+                    </tr>
+                    <tr class="table-primary">
+                        <th>Total Bill:</th>
+                        <td>₱${parseFloat(billingData.totalBill).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    </tr>
+                </table>
+            </div>
+        `;
+            new bootstrap.Modal(document.getElementById('billingModal')).show();
+        } else {
+            const toastElement = document.getElementById('errorToast');
+            const toast = new bootstrap.Toast(toastElement, {
+                animation: true,
+                autohide: true,
+                delay: 3000
+            });
+            toast.show();
+        }
+    });
+
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/service-worker.js')
+                .then(registration => {
+                    console.log('ServiceWorker registration successful');
+                })
+                .catch(err => {
+                    console.log('ServiceWorker registration failed: ', err);
                 });
-                toast.show();
-            }
         });
+    }
+
 </script>
 </body>
 
