@@ -20,26 +20,97 @@
             background-image: radial-gradient(650px circle at 0% 0%, hsl(218, 41%, 35%) 15%, hsl(218, 41%, 30%) 35%, hsl(218, 41%, 20%) 75%, hsl(218, 41%, 19%) 80%, transparent 100%), radial-gradient(1250px circle at 100% 100%, hsl(218, 41%, 45%) 15%, hsl(218, 41%, 30%) 35%, hsl(218, 41%, 20%) 75%, hsl(218, 41%, 19%) 80%, transparent 100%);
             min-height: 100vh;
         }
+
+        .btn-group {
+            white-space: nowrap;
+        }
     </style>
 </head>
 
 <body>
+
+<!-- Toast container -->
+<div class="toast-container position-fixed top-0 end-0 p-3">
+    <!-- Success Toast -->
+    <div id="successToast" class="toast align-items-center text-white bg-success border-0" role="alert"
+        aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body">
+                Operation completed successfully!
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"
+                aria-label="Close"></button>
+        </div>
+    </div>
+
+    <!-- Warning Toast -->
+    <div id="warningToast" class="toast align-items-center text-white bg-warning border-0" role="alert"
+        aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body">
+                Please select items to delete
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"
+                aria-label="Close"></button>
+        </div>
+    </div>
+</div>
+
+    <!-- Confirmation Modal -->
+    <div class="modal fade" id="confirmationModal" tabindex="-1" aria-labelledby="confirmationModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="confirmationModalLabel">Confirm Action</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to clear all billing history?</p>
+                    <p class="text-muted small">This action cannot be undone.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" onclick="confirmClearHistory()">Clear History</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <section class="background-radial-gradient overflow-hidden">
         <div class="container px-4 py-5">
             <div class="row justify-content-center">
                 <div class="col-12">
                     <div class="card bg-glass">
                         <div class="card-body p-4">
-                            <div class="d-flex justify-content-between align-items-center mb-4">
-                                <h2 class="card-title">Billing History</h2>
-                                <div>
-                                    <button class="btn btn-primary me-2" onclick="exportHistory()">Export
-                                        History</button>
-                                    <button class="btn btn-danger me-2" onclick="clearHistory()">Clear History</button>
-                                    <button class="btn btn-secondary"
-                                        onclick="window.location.href='index.html'">Back</button>
-                                </div>
-                            </div>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="card-title">Billing History</h2>
+
+    <!-- Desktop buttons (hidden on mobile) -->
+    <div class="d-none d-md-flex">
+        <button class="btn btn-primary me-2" onclick="exportHistory()">Export History</button>
+        <button class="btn btn-danger me-2" onclick="deleteSelected()">Delete Selected</button>
+        <button class="btn btn-danger me-2" onclick="clearHistory()">Clear History</button>
+        <button class="btn btn-secondary" onclick="window.location.href='index.html'">Back</button>
+    </div>
+
+    <!-- Mobile dropdown (shown only on mobile) -->
+    <div class="dropdown d-md-none">
+        <button class="btn btn-secondary dropdown-toggle" type="button" id="mobileMenuButton" data-bs-toggle="dropdown"
+            aria-expanded="false">
+            Actions
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="mobileMenuButton">
+            <li><a class="dropdown-item" href="#" onclick="exportHistory()">Export History</a></li>
+            <li><a class="dropdown-item" href="#" onclick="deleteSelected()">Delete Selected</a></li>
+            <li><a class="dropdown-item" href="#" onclick="clearHistory()">Clear History</a></li>
+            <li>
+                <hr class="dropdown-divider">
+            </li>
+            <li><a class="dropdown-item" href="index.html">Back</a></li>
+        </ul>
+    </div>
+</div>
                             <div id="historyContent" class="table-responsive">
                                 <!-- History will be populated here -->
                             </div>
@@ -64,6 +135,7 @@
                 <table class="table table-striped">
                     <thead>
                         <tr>
+                            <th><input type="checkbox" id="selectAll" onclick="toggleAll(this)"></th>
                             <th>Date</th>
                             <th>Room</th>
                             <th>Previous Reading</th>
@@ -76,9 +148,10 @@
                     <tbody>
             `;
 
-            history.reverse().forEach(entry => {
+            history.reverse().forEach((entry, index) => {
                 tableHTML += `
                     <tr>
+                        <td><input type="checkbox" class="history-check" data-index="${index}"></td>
                         <td>${entry.billingMonth}</td>
                         <td>${entry.room}</td>
                         <td>${entry.previousReading} kWh</td>
@@ -94,25 +167,92 @@
             historyContent.innerHTML = tableHTML;
         }
 
-        function clearHistory() {
-            if (confirm('Are you sure you want to clear all billing history?')) {
-                localStorage.removeItem('billingHistory');
-                loadHistory();
+        function toggleAll(source) {
+            const checkboxes = document.getElementsByClassName('history-check');
+            for (let checkbox of checkboxes) {
+                checkbox.checked = source.checked;
             }
         }
 
-        function exportHistory() {
-            const history = JSON.parse(localStorage.getItem('billingHistory')) || [];
-            const dataStr = JSON.stringify(history, null, 2);
-            const blob = new Blob([dataStr], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.download = `billing-history-${new Date().toISOString().slice(0, 10)}.json`;
-            link.href = url;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+        // Update delete selected function to use toast
+   
+    const warningToast = new bootstrap.Toast(document.getElementById('warningToast'));
+
+    function deleteSelected() {
+        const checkboxes = document.getElementsByClassName('history-check');
+        const history = JSON.parse(localStorage.getItem('billingHistory')) || [];
+        const indicesToDelete = [];
+
+        for (let checkbox of checkboxes) {
+            if (checkbox.checked) {
+                indicesToDelete.push(parseInt(checkbox.dataset.index));
+            }
         }
+
+        if (indicesToDelete.length === 0) {
+            warningToast.show();  // Show toast instead of alert
+            return;
+        }
+
+                const modal = new bootstrap.Modal(document.getElementById('confirmationModal'));
+                document.getElementById('confirmationModalLabel').textContent = 'Delete Selected Items';
+                document.querySelector('#confirmationModal .modal-body').innerHTML = `
+        <p>Are you sure you want to delete ${indicesToDelete.length} selected item(s)?</p>
+        <p class="text-muted small">This action cannot be undone.</p>
+    `;
+                document.querySelector('#confirmationModal .modal-footer .btn-danger').onclick = function () {
+                    const updatedHistory = history.filter((_, index) => !indicesToDelete.includes(index));
+                    localStorage.setItem('billingHistory', JSON.stringify(updatedHistory));
+                    modal.hide();
+                    successToast.show();
+                    loadHistory();
+                };
+                modal.show();
+            }
+
+            // Initialize toast
+                const successToast = new bootstrap.Toast(document.getElementById('successToast'));
+
+    // Update the clear history function
+    function clearHistory() {
+        // Show modal instead of confirm
+        const modal = new bootstrap.Modal(document.getElementById('confirmationModal'));
+        modal.show();
+    }
+    // New function to handle the confirmation
+        function confirmClearHistory() {
+            // Get the modal instance
+            const modal = bootstrap.Modal.getInstance(document.getElementById('confirmationModal'));
+
+            // Hide the modal with animation
+            modal.hide();
+
+            // Clear the history
+            localStorage.removeItem('billingHistory');
+
+            // Show success toast
+            successToast.show();
+
+            // Reload the table
+            loadHistory();
+        }
+
+    // Update export function to show success toast
+    function exportHistory() {
+        const history = JSON.parse(localStorage.getItem('billingHistory')) || [];
+        const dataStr = JSON.stringify(history, null, 2);
+        const blob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.download = `billing-history-${new Date().toISOString().slice(0, 10)}.json`;
+        link.href = url;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        // Show success toast
+        successToast.show();
+    }
 
         // Load history when page loads
         window.onload = loadHistory;
