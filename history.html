@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Billing History</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <style>
         .bg-glass {
@@ -111,6 +112,16 @@
         </ul>
     </div>
 </div>
+<!-- Add search bar -->
+<div class="row mb-4">
+    <div class="col-md-6 col-lg-4">
+        <div class="input-group">
+            <span class="input-group-text"><i class="fas fa-search"></i></span>
+            <input type="text" class="form-control" id="searchInput" placeholder="Search by room name..."
+                onkeyup="searchRoom()">
+        </div>
+    </div>
+</div>
                             <div id="historyContent" class="table-responsive">
                                 <!-- History will be populated here -->
                             </div>
@@ -122,60 +133,106 @@
     </section>
 
     <script>
-        function loadHistory() {
-            const history = JSON.parse(localStorage.getItem('billingHistory')) || [];
-            const historyContent = document.getElementById('historyContent');
+    function updateReading(room, previousReading, powerRates) {
+        const updateData = {
+            room: room,
+            previousReading: previousReading,
+            powerRates: powerRates
+        };
+        localStorage.setItem('updateData', JSON.stringify(updateData));
+        window.location.href = 'index.html';
+    }
 
-            if (history.length === 0) {
-                historyContent.innerHTML = '<p class="text-center text-muted">No billing history available</p>';
-                return;
-            }
+    function loadHistory(searchTerm = '') {
+        const history = JSON.parse(localStorage.getItem('billingHistory')) || [];
+        const historyContent = document.getElementById('historyContent');
 
-            let tableHTML = `
-                <table class="table table-striped">
-                    <thead>
-                        <tr>
-                            <th><input type="checkbox" id="selectAll" onclick="toggleAll(this)"></th>
-                            <th>Date</th>
-                            <th>Room</th>
-                            <th>Previous Reading</th>
-                            <th>Present Reading</th>
-                            <th>kWh Used</th>
-                            <th>Rate</th>
-                            <th>Total Bill</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-            `;
-
-            history.reverse().forEach((entry, index) => {
-                tableHTML += `
-                    <tr>
-                        <td><input type="checkbox" class="history-check" data-index="${index}"></td>
-                        <td>${entry.billingMonth}</td>
-                        <td>${entry.room}</td>
-                        <td>${entry.previousReading} kWh</td>
-                        <td>${entry.presentReading} kWh</td>
-                        <td>${entry.kWhUsed} kWh</td>
-                        <td>₱${entry.powerRates}</td>
-                        <td>₱${parseFloat(entry.totalBill).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                    </tr>
-                `;
-            });
-
-            tableHTML += '</tbody></table>';
-            historyContent.innerHTML = tableHTML;
+        if (history.length === 0) {
+            historyContent.innerHTML = '<p class="text-center text-muted">No billing history available</p>';
+            return;
         }
 
-        function toggleAll(source) {
-            const checkboxes = document.getElementsByClassName('history-check');
-            for (let checkbox of checkboxes) {
-                checkbox.checked = source.checked;
-            }
+        // Filter history based on search term
+        const filteredHistory = searchTerm
+            ? history.filter(entry => entry.room.toLowerCase().includes(searchTerm.toLowerCase()))
+            : history;
+
+        if (filteredHistory.length === 0) {
+            historyContent.innerHTML = '<p class="text-center text-muted">No matching rooms found</p>';
+            return;
         }
 
-        // Update delete selected function to use toast
-   
+        let tableHTML = `
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th><input type="checkbox" id="selectAll" onclick="toggleAll(this)"></th>
+                    <th>Date</th>
+                    <th>Room</th>
+                    <th>Previous Reading</th>
+                    <th>Present Reading</th>
+                    <th>kWh Used</th>
+                    <th>Rate</th>
+                    <th>Total Bill</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+        filteredHistory.reverse().forEach((entry, index) => {
+            tableHTML += `
+            <tr>
+                <td><input type="checkbox" class="history-check" data-index="${index}"></td>
+                <td>${entry.billingMonth}</td>
+                <td>${entry.room}</td>
+                <td>${entry.previousReading} kWh</td>
+                <td>${entry.presentReading} kWh</td>
+                <td>${entry.kWhUsed} kWh</td>
+                <td>₱${entry.powerRates}</td>
+                <td>₱${parseFloat(entry.totalBill).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                <td>
+                    <button class="btn btn-sm btn-primary" onclick="updateReading('${entry.room}', ${entry.presentReading}, ${entry.powerRates})">
+                        Update
+                    </button>
+                </td>
+            </tr>
+        `;
+        });
+
+        tableHTML += '</tbody></table>';
+        historyContent.innerHTML = tableHTML;
+    }
+
+    function toggleAll(source) {
+        const checkboxes = document.getElementsByClassName('history-check');
+        for (let checkbox of checkboxes) {
+            checkbox.checked = source.checked;
+        }
+    }
+
+    function searchRoom() {
+        const searchTerm = document.getElementById('searchInput').value;
+        loadHistory(searchTerm);
+    }
+
+    // Debounce function to improve search performance
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+
+    const debouncedSearch = debounce(() => {
+        searchRoom();
+    }, 300);
+
     const warningToast = new bootstrap.Toast(document.getElementById('warningToast'));
 
     function deleteSelected() {
@@ -190,54 +247,41 @@
         }
 
         if (indicesToDelete.length === 0) {
-            warningToast.show();  // Show toast instead of alert
+            warningToast.show();
             return;
         }
 
-                const modal = new bootstrap.Modal(document.getElementById('confirmationModal'));
-                document.getElementById('confirmationModalLabel').textContent = 'Delete Selected Items';
-                document.querySelector('#confirmationModal .modal-body').innerHTML = `
+        const modal = new bootstrap.Modal(document.getElementById('confirmationModal'));
+        document.getElementById('confirmationModalLabel').textContent = 'Delete Selected Items';
+        document.querySelector('#confirmationModal .modal-body').innerHTML = `
         <p>Are you sure you want to delete ${indicesToDelete.length} selected item(s)?</p>
         <p class="text-muted small">This action cannot be undone.</p>
     `;
-                document.querySelector('#confirmationModal .modal-footer .btn-danger').onclick = function () {
-                    const updatedHistory = history.filter((_, index) => !indicesToDelete.includes(index));
-                    localStorage.setItem('billingHistory', JSON.stringify(updatedHistory));
-                    modal.hide();
-                    successToast.show();
-                    loadHistory();
-                };
-                modal.show();
-            }
+        document.querySelector('#confirmationModal .modal-footer .btn-danger').onclick = function () {
+            const updatedHistory = history.filter((_, index) => !indicesToDelete.includes(index));
+            localStorage.setItem('billingHistory', JSON.stringify(updatedHistory));
+            modal.hide();
+            successToast.show();
+            loadHistory(document.getElementById('searchInput').value); // Maintain search term when reloading
+        };
+        modal.show();
+    }
 
-            // Initialize toast
-                const successToast = new bootstrap.Toast(document.getElementById('successToast'));
+    const successToast = new bootstrap.Toast(document.getElementById('successToast'));
 
-    // Update the clear history function
     function clearHistory() {
-        // Show modal instead of confirm
         const modal = new bootstrap.Modal(document.getElementById('confirmationModal'));
         modal.show();
     }
-    // New function to handle the confirmation
-        function confirmClearHistory() {
-            // Get the modal instance
-            const modal = bootstrap.Modal.getInstance(document.getElementById('confirmationModal'));
 
-            // Hide the modal with animation
-            modal.hide();
+    function confirmClearHistory() {
+        const modal = bootstrap.Modal.getInstance(document.getElementById('confirmationModal'));
+        modal.hide();
+        localStorage.removeItem('billingHistory');
+        successToast.show();
+        loadHistory();
+    }
 
-            // Clear the history
-            localStorage.removeItem('billingHistory');
-
-            // Show success toast
-            successToast.show();
-
-            // Reload the table
-            loadHistory();
-        }
-
-    // Update export function to show success toast
     function exportHistory() {
         const history = JSON.parse(localStorage.getItem('billingHistory')) || [];
         const dataStr = JSON.stringify(history, null, 2);
@@ -249,13 +293,15 @@
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-
-        // Show success toast
         successToast.show();
     }
 
-        // Load history when page loads
-        window.onload = loadHistory;
+    // Initialize
+    window.onload = () => {
+        loadHistory();
+        // Add event listener for search
+        document.getElementById('searchInput').addEventListener('keyup', debouncedSearch);
+    };
     </script>
 </body>
 

@@ -324,6 +324,24 @@ if ('serviceWorker' in navigator) {
     });
 }
 
+    window.addEventListener('load', function () {
+        // Check if there's update data
+        const updateData = localStorage.getItem('updateData');
+        if (updateData) {
+            const data = JSON.parse(updateData);
+
+            // Pre-fill the form
+            document.getElementById('roomName').value = data.room;
+            document.getElementById('previousReading').value = data.previousReading;
+            document.getElementById('powerRates').value = data.powerRates;
+
+            // Clear the update data from localStorage
+            localStorage.removeItem('updateData');
+
+            // Focus on the present reading input
+            document.getElementById('presentReading').focus();
+        }
+    });
 </script>
 </body>
 
