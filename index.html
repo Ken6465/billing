@@ -325,23 +325,52 @@ if ('serviceWorker' in navigator) {
 }
 
     window.addEventListener('load', function () {
-        // Check if there's update data
-        const updateData = localStorage.getItem('updateData');
+        // Try both sessionStorage and localStorage
+        const updateData = sessionStorage.getItem('updateData') || localStorage.getItem('updateData');
+
         if (updateData) {
-            const data = JSON.parse(updateData);
+            try {
+                const data = JSON.parse(updateData);
+                console.log('Update data found:', data); // Debug log
 
-            // Pre-fill the form
-            document.getElementById('roomName').value = data.room;
-            document.getElementById('previousReading').value = data.previousReading;
-            document.getElementById('powerRates').value = data.powerRates;
+                // Pre-fill the form
+                const roomNameInput = document.getElementById('roomName');
+                const previousReadingInput = document.getElementById('previousReading');
+                const powerRatesInput = document.getElementById('powerRates');
 
-            // Clear the update data from localStorage
-            localStorage.removeItem('updateData');
+                if (roomNameInput && previousReadingInput && powerRatesInput) {
+                    roomNameInput.value = data.room;
+                    previousReadingInput.value = data.previousReading;
+                    powerRatesInput.value = data.powerRates;
 
-            // Focus on the present reading input
-            document.getElementById('presentReading').focus();
+                    // Focus on the present reading input
+                    const presentReadingInput = document.getElementById('presentReading');
+                    if (presentReadingInput) {
+                        presentReadingInput.focus();
+                    }
+                } else {
+                    console.error('One or more form elements not found');
+                }
+
+                // Clear the update data from both storages
+                sessionStorage.removeItem('updateData');
+                localStorage.removeItem('updateData');
+            } catch (error) {
+                console.error('Error parsing update data:', error);
+            }
+        } else {
+            console.log('No update data found'); // Debug log
         }
     });
+
+    // Add this function to verify the data transfer
+    function verifyStorage() {
+        console.log('localStorage updateData:', localStorage.getItem('updateData'));
+        console.log('sessionStorage updateData:', sessionStorage.getItem('updateData'));
+    }
+
+    // Call this when page loads
+    document.addEventListener('DOMContentLoaded', verifyStorage);
 </script>
 </body>
 

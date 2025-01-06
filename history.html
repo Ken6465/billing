@@ -133,13 +133,15 @@
     </section>
 
     <script>
+    // In history.html, modify the updateReading function to use sessionStorage instead
     function updateReading(room, previousReading, powerRates) {
         const updateData = {
             room: room,
             previousReading: previousReading,
             powerRates: powerRates
         };
-        localStorage.setItem('updateData', JSON.stringify(updateData));
+        // Use sessionStorage instead of localStorage for temporary data
+        sessionStorage.setItem('updateData', JSON.stringify(updateData));
         window.location.href = 'index.html';
     }
 
