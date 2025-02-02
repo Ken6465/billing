@@ -88,12 +88,14 @@
     <h2 class="card-title">Billing History</h2>
 
     <!-- Desktop buttons (hidden on mobile) -->
-    <div class="d-none d-md-flex">
-        <button class="btn btn-primary me-2" onclick="exportHistory()">Export History</button>
-        <button class="btn btn-danger me-2" onclick="deleteSelected()">Delete Selected</button>
-        <button class="btn btn-danger me-2" onclick="clearHistory()">Clear History</button>
-        <button class="btn btn-secondary" onclick="window.location.href='index.html'">Back</button>
-    </div>
+<div class="d-none d-md-flex">
+    <button class="btn btn-primary me-2" onclick="exportHistory()">Export History</button>
+    <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importHistory(this)">
+    <button class="btn btn-primary me-2" onclick="document.getElementById('importFile').click()">Import History</button>
+    <button class="btn btn-danger me-2" onclick="deleteSelected()">Delete Selected</button>
+    <button class="btn btn-danger me-2" onclick="clearHistory()">Clear History</button>
+    <button class="btn btn-secondary" onclick="window.location.href='index.html'">Back</button>
+</div>
 
     <!-- Mobile dropdown (shown only on mobile) -->
     <div class="dropdown d-md-none">
@@ -101,15 +103,17 @@
             aria-expanded="false">
             Actions
         </button>
-        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="mobileMenuButton">
-            <li><a class="dropdown-item" href="#" onclick="exportHistory()">Export History</a></li>
-            <li><a class="dropdown-item" href="#" onclick="deleteSelected()">Delete Selected</a></li>
-            <li><a class="dropdown-item" href="#" onclick="clearHistory()">Clear History</a></li>
-            <li>
-                <hr class="dropdown-divider">
-            </li>
-            <li><a class="dropdown-item" href="index.html">Back</a></li>
-        </ul>
+    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="mobileMenuButton">
+        <li><a class="dropdown-item" href="#" onclick="exportHistory()">Export History</a></li>
+        <li><a class="dropdown-item" href="#" onclick="document.getElementById('importFile').click()">Import History</a>
+        </li>
+        <li><a class="dropdown-item" href="#" onclick="deleteSelected()">Delete Selected</a></li>
+        <li><a class="dropdown-item" href="#" onclick="clearHistory()">Clear History</a></li>
+        <li>
+            <hr class="dropdown-divider">
+        </li>
+        <li><a class="dropdown-item" href="index.html">Back</a></li>
+    </ul>
     </div>
 </div>
 <!-- Add search bar -->
@@ -133,6 +137,69 @@
     </section>
 
     <script>
+
+        // Add this new function for importing:
+            function importHistory(input) {
+                const file = input.files[0];
+                if (!file) {
+                    return;
+                }
+
+                // Create a warning modal instance
+                const modal = new bootstrap.Modal(document.getElementById('confirmationModal'));
+                document.getElementById('confirmationModalLabel').textContent = 'Import History';
+                document.querySelector('#confirmationModal .modal-body').innerHTML = `
+        <p>Are you sure you want to import this file? It will replace all existing history data.</p>
+        <p class="text-muted small">This action cannot be undone.</p>
+    `;
+
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    try {
+                        // Store the parsed JSON temporarily
+                        const importedData = JSON.parse(e.target.result);
+
+                        // Update the modal's confirm button
+                        document.querySelector('#confirmationModal .modal-footer .btn-danger').onclick = function () {
+                            try {
+                                // Validate the data structure
+                                if (!Array.isArray(importedData)) {
+                                    throw new Error('Invalid data format: Expected an array');
+                                }
+
+                                // Validate each entry has required fields
+                                importedData.forEach((entry, index) => {
+                                    const requiredFields = ['billingMonth', 'room', 'previousReading', 'presentReading',
+                                        'kWhUsed', 'powerRates', 'totalBill'];
+                                    requiredFields.forEach(field => {
+                                        if (!(field in entry)) {
+                                            throw new Error(`Missing required field "${field}" in entry ${index + 1}`);
+                                        }
+                                    });
+                                });
+
+                                // If validation passes, update localStorage
+                                localStorage.setItem('billingHistory', JSON.stringify(importedData));
+                                modal.hide();
+                                successToast.show();
+                                loadHistory(); // Refresh the table
+                                input.value = ''; // Reset the file input
+                            } catch (error) {
+                                modal.hide();
+                                alert('Error importing data: ' + error.message);
+                            }
+                        };
+
+                        modal.show();
+                    } catch (error) {
+                        alert('Error reading file: Invalid JSON format');
+                        input.value = ''; // Reset the file input
+                    }
+                };
+
+                reader.readAsText(file);
+            }
+            
     // In history.html, modify the updateReading function to use sessionStorage instead
     function updateReading(room, previousReading, powerRates) {
         const updateData = {
@@ -242,9 +309,13 @@
         const history = JSON.parse(localStorage.getItem('billingHistory')) || [];
         const indicesToDelete = [];
 
+        // Calculate the actual indices to delete, accounting for the reversed display
         for (let checkbox of checkboxes) {
             if (checkbox.checked) {
-                indicesToDelete.push(parseInt(checkbox.dataset.index));
+                // Convert the display index to the actual index in the original array
+                const displayIndex = parseInt(checkbox.dataset.index);
+                const actualIndex = history.length - 1 - displayIndex;
+                indicesToDelete.push(actualIndex);
             }
         }
 
@@ -260,11 +331,18 @@
         <p class="text-muted small">This action cannot be undone.</p>
     `;
         document.querySelector('#confirmationModal .modal-footer .btn-danger').onclick = function () {
-            const updatedHistory = history.filter((_, index) => !indicesToDelete.includes(index));
-            localStorage.setItem('billingHistory', JSON.stringify(updatedHistory));
+            // Sort indices in descending order to avoid shifting issues when deleting
+            indicesToDelete.sort((a, b) => b - a);
+
+            // Remove items from the history array
+            for (let index of indicesToDelete) {
+                history.splice(index, 1);
+            }
+
+            localStorage.setItem('billingHistory', JSON.stringify(history));
             modal.hide();
             successToast.show();
-            loadHistory(document.getElementById('searchInput').value); // Maintain search term when reloading
+            loadHistory(document.getElementById('searchInput').value);
         };
         modal.show();
     }
